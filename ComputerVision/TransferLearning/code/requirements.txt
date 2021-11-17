@@ -1,0 +1,8 @@
+tqdm
+pytorch-lightning
+sagemaker
+boto3
+torchvision
+torchsummary
+tqdm
+torchmetrics

@@ -39,11 +39,8 @@ if __name__ == "__main__":
     train_df   = pd.concat(df_list, ignore_index=True)
     train_df.dropna(inplace=True)
 
-    # read all data from validation folder
-    val_csv_files = glob.glob(args.validation + "/*.part")
-    print(val_csv_files)
-    df_list = (pd.read_csv(file) for file in val_csv_files)
-    val_df   = pd.concat(df_list, ignore_index=True)
+    # read all data from validation file
+    val_df   = pd.read_csv(args.validation + "/newval.csv")
     val_df.dropna(inplace=True)
     
     # build training and testing dataset

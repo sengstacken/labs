@@ -13,6 +13,26 @@ def model_fn(model_dir):
     return clf
 
 
+# inference function for model serialization (process the input before being sent to the model)
+def input_fn(request_body, request_content_type):
+    
+    """An input_fn that loads a pickled numpy array"""
+    if request_content_type == "text/csv":
+        print(request_body)
+        array = np.fromstring(request_body,dtype=float,sep=',')
+        if len(array.shape) < 2:
+            array = np.array(array).reshape(1, -1)
+        
+        print(request_content_type)
+        print(array)
+        print(array.shape)
+        return array
+    else:
+        print('unknown conetent-types')
+        # Handle other content-types here or raise an Exception
+        # if the content type is not supported.
+        pass
+
 if __name__ == "__main__":
 
     print("extracting arguments")

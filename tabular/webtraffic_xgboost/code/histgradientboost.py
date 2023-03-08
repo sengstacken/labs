@@ -4,30 +4,13 @@ import os
 import glob
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, classification_report
 
 # inference function for model loading
 def model_fn(model_dir):
     clf = joblib.load(os.path.join(model_dir, "model.joblib"))
     return clf
-
-
-# inference function for model serialization (process the input before being sent to the model)
-def input_fn(request_body, request_content_type):
-    
-    """An input_fn that loads a pickled numpy array"""
-    if request_content_type == "text/csv":
-        array = np.fromstring(request_body,dtype=float,sep=',')
-        if len(array.shape) < 2:
-            array = np.array(array).reshape(1, -1)
-    
-        return array
-    else:
-        print('unknown content-types')
-        # Handle other content-types here or raise an Exception
-        # if the content type is not supported.
-        pass
 
 if __name__ == "__main__":
 
@@ -36,8 +19,8 @@ if __name__ == "__main__":
 
     # hyperparameters sent by the client are passed as command-line arguments to the script.
     # to simplify the demo we don't use all sklearn RandomForest hyperparameters
-    parser.add_argument("--n-estimators", type=int, default=10)
-    parser.add_argument("--min-samples-leaf", type=int, default=3)
+    parser.add_argument("--learningrate", type=float, default=0.1)
+    parser.add_argument("--maxiter", type=int, default=100)
 
     # Data, model, and output directories
     parser.add_argument("--model-dir", type=str, default=os.environ.get("SM_MODEL_DIR"))
@@ -53,11 +36,14 @@ if __name__ == "__main__":
     print(train_csv_files)
     df_list = (pd.read_csv(file) for file in train_csv_files)
     train_df   = pd.concat(df_list, ignore_index=True)
-    train_df.dropna(inplace=True)
+    #train_df.dropna(inplace=True)
 
     # read all data from validation file
-    val_df   = pd.read_csv(args.validation + "/newval.csv")
-    val_df.dropna(inplace=True)
+    val_csv_files = glob.glob(args.validation + "/*.csv")
+    print(val_csv_files)
+    df_list = (pd.read_csv(file) for file in val_csv_files)
+    val_df   = pd.concat(df_list, ignore_index=True)
+    #val_df.dropna(inplace=True)
     
     # build training and testing dataset
     print("building training and testing datasets")
@@ -72,12 +58,7 @@ if __name__ == "__main__":
     
     # train
     print("training model")
-    model = RandomForestClassifier(
-        n_estimators=args.n_estimators, 
-        min_samples_leaf=args.min_samples_leaf, 
-        oob_score = True, 
-        n_jobs=-1,
-        verbose=2,
+    model = HistGradientBoostingClassifier(learning_rate=args.learningrate,max_iter=args.maxiter,verbose=2,
     )
 
     model.fit(X_train.values, y_train.values)
@@ -91,7 +72,6 @@ if __name__ == "__main__":
     print(f"Accuracy is: {acc}")
     #print(f"Area under the curve is: {auc}")
     print(f"Weighted F1 Score is: {wf1}")
-    print(f"OOB Score: {model.oob_score_:.3}")
     print()
     print("Classification Report")
     print(classification_report(y_val,y_pred,target_names = class_list))
